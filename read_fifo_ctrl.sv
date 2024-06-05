@@ -16,7 +16,7 @@ module read_fifo_ctrl #(parameter ADDR_WIDTH = 3)
   logic [ADDR_WIDTH-1:0] one_hot = 1;            // One-hot encoding for incrementing read pointer
 
   // State encoding
-  typedef enum logic[1:0] {EMPTY, CONTINUE} state_t;
+  typedef enum logic {EMPTY, CONTINUE} state_t;
   state_t p_state, n_state;                      // Present and next state variables
 
   // Output assignment for empty signal

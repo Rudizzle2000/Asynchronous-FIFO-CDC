@@ -7,10 +7,13 @@ module write_fifo_ctrl #(parameter ADDR_WIDTH = 3)
   input logic w_reset_in,                       // Write reset input
   input logic w_request_in,                     // Write request input
   input logic [ADDR_WIDTH - 1:0] r_ptr_in,      // Read pointer input
-  input logic [ADDR_WIDTH - 1:0] w_ptr_next_in, // Next write pointer input
-  input logic [ADDR_WIDTH - 1:0] w_ptr_present_in, // Present write pointer input
+  input logic [ADDR_WIDTH - 1:0] w_ptr_in,      // Present write pointer input
   output logic ctrl_full_out                    // Control signal indicating if FIFO is full
 );
+
+  // Internal signals
+  logic [ADDR_WIDTH - 1:0] w_ptr_next_in;        // Next write pointer
+  logic [ADDR_WIDTH-1:0] one_hot = 1;            // One-hot encoding for incrementing write pointer
 
   // State encoding
   typedef enum logic {CONTINUE, FULL} state_t;
@@ -18,6 +21,9 @@ module write_fifo_ctrl #(parameter ADDR_WIDTH = 3)
 
   // Output assignment for full signal
   assign ctrl_full_out = (p_state == FULL);
+  
+  // Calculate next read pointer
+  assign w_ptr_next_in = w_ptr_in + one_hot;
 
   // Sequential logic for state transition
   always_ff @(posedge w_clk_in or posedge w_reset_in) begin
@@ -39,7 +45,7 @@ module write_fifo_ctrl #(parameter ADDR_WIDTH = 3)
         end
       end
       FULL: begin
-        if (w_ptr_present_in != r_ptr_in) begin
+        if (w_ptr_in != r_ptr_in) begin
           n_state = CONTINUE; // Transition to CONTINUE if present write pointer does not equal read pointer
         end else begin
           n_state = FULL; // Remain in FULL state
@@ -62,8 +68,7 @@ module write_fifo_ctrl_tb();
   logic w_reset_in;
   logic w_request_in;
   logic [ADDR_WIDTH - 1:0] r_ptr_in;
-  logic [ADDR_WIDTH - 1:0] w_ptr_next_in;
-  logic [ADDR_WIDTH - 1:0] w_ptr_present_in;
+  logic [ADDR_WIDTH - 1:0] w_ptr_in;
   logic ctrl_full_out;
   
   // Module instantiation
@@ -72,8 +77,7 @@ module write_fifo_ctrl_tb();
     .w_reset_in(w_reset_in),
     .w_request_in(w_request_in),
     .r_ptr_in(r_ptr_in),
-    .w_ptr_next_in(w_ptr_next_in),
-    .w_ptr_present_in(w_ptr_present_in),
+    .w_ptr_in(w_ptr_in),
     .ctrl_full_out(ctrl_full_out)
   );
 
@@ -92,8 +96,7 @@ module write_fifo_ctrl_tb();
     w_reset_in = 1;
     w_request_in = 0;
     r_ptr_in = 0;
-    w_ptr_present_in = 0;
-    w_ptr_next_in = w_ptr_present_in + 1;
+    w_ptr_in = 0;
 
     // Apply reset
     @(posedge w_clk_in);
@@ -105,12 +108,11 @@ module write_fifo_ctrl_tb();
     for (int curr = 0; curr < 2**ADDR_WIDTH - 1; curr++) begin
       w_request_in = 1;
       r_ptr_in = 0;
-      w_ptr_present_in = curr;
-      w_ptr_next_in = w_ptr_present_in + 1;
+      w_ptr_in = curr;
       @(posedge w_clk_in);
       
-      $display("read_ptr: %0d, w_present: %0d, w_next: %0d, full: %0d", 
-               r_ptr_in, w_ptr_present_in, w_ptr_next_in, ctrl_full_out);
+      $display("read_ptr: %0d, w_present: %0d, full: %0d", 
+               r_ptr_in, w_ptr_in, ctrl_full_out);
     end
     
     // Remain almost full for 3 clock cycles
@@ -121,10 +123,11 @@ module write_fifo_ctrl_tb();
     
     // Now fill that last spot to be FULL
     w_request_in = 1;
+	 w_ptr_in = w_ptr_in + 1;
     r_ptr_in = 0;
     @(posedge w_clk_in);
-    $display("read_ptr: %0d, w_present: %0d, w_next: %0d, full: %0d", 
-             r_ptr_in, w_ptr_present_in, w_ptr_next_in, ctrl_full_out);    
+    $display("read_ptr: %0d, w_present: %0d, full: %0d", 
+               r_ptr_in, w_ptr_in, ctrl_full_out);   
     
     // Reading until EMPTY state
     for (int curr = 0; curr < 2**ADDR_WIDTH; curr++) begin
@@ -132,8 +135,8 @@ module write_fifo_ctrl_tb();
       r_ptr_in = curr;
       @(posedge w_clk_in);
       
-      $display("read_ptr: %0d, w_present: %0d, w_next: %0d, full: %0d", 
-               r_ptr_in, w_ptr_present_in, w_ptr_next_in, ctrl_full_out);
+      $display("read_ptr: %0d, w_present: %0d, full: %0d", 
+               r_ptr_in, w_ptr_in, ctrl_full_out);
     end
 
     // Stop simulation

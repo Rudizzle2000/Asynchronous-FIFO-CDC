@@ -19,6 +19,7 @@ module read_fifo_dpath #(parameter ADDR_WIDTH = 3)
   // Used to ensure the read pointer never leads the write pointer
   assign r_enable = ~ctrl_empty_in & r_request_in;
 
+  // Sequential logic to control read pointer values
   always_ff @(posedge r_clk_in or posedge r_reset_in) begin
     if (r_reset_in) begin
       r_ptr_out <= 0; // Initialize the read pointer

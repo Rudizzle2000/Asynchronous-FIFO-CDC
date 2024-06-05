@@ -12,13 +12,12 @@ module write_fifo_top #(parameter ADDR_WIDTH = 3)
 );
 
    // Internal signals
-   logic w_full_ctrl_to_dp;                       // Full signal from control to datapath
-   logic [ADDR_WIDTH - 1:0] wptr_next_dp_to_ctrl; // Next write pointer from datapath to control
-   logic [ADDR_WIDTH - 1:0] wptr_pres_dp_to_ctrl; // Present write pointer from datapath to control
+   logic w_full_ctrl_to_dp;                  // Full signal from control to datapath
+   logic [ADDR_WIDTH - 1:0] wptr_dp_to_ctrl; // Present write pointer from datapath to control
 
    // Output assignments
-   assign w_full_out = w_full_ctrl_to_dp;         // Assign full signal to output
-   assign w_addr_out = wptr_pres_dp_to_ctrl;      // Assign present write pointer to address output
+   assign w_full_out = w_full_ctrl_to_dp;    // Assign full signal to output
+   assign w_addr_out = wptr_dp_to_ctrl;      // Assign present write pointer to address output
 
    // Instantiate write control module
    write_fifo_ctrl #(ADDR_WIDTH) W_CTRL
@@ -27,8 +26,7 @@ module write_fifo_top #(parameter ADDR_WIDTH = 3)
      .w_reset_in(w_reset_in),
      .w_request_in(w_request_in),
      .r_ptr_in(r_ptr_in),
-     .w_ptr_next_in(wptr_next_dp_to_ctrl),
-     .w_ptr_present_in(wptr_pres_dp_to_ctrl),
+     .w_ptr_in(wptr_dp_to_ctrl),
      .ctrl_full_out(w_full_ctrl_to_dp)
    );
 
@@ -39,8 +37,7 @@ module write_fifo_top #(parameter ADDR_WIDTH = 3)
      .w_reset_in(w_reset_in),
      .w_request_in(w_request_in),
      .ctrl_full_in(w_full_ctrl_to_dp),
-     .w_ptr_next_out(wptr_next_dp_to_ctrl),
-     .w_ptr_present_out(wptr_pres_dp_to_ctrl)
+     .w_ptr_out(wptr_dp_to_ctrl)
    );
 
 endmodule 

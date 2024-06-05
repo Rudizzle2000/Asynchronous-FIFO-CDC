@@ -3,17 +3,17 @@
 
 module write_fifo_dpath #(parameter ADDR_WIDTH = 3)
 (
-  input logic w_clk_in,                        // Write clock input
-  input logic w_reset_in,                      // Write reset input
-  input logic w_request_in,                    // Write request input
-  input logic ctrl_full_in,                    // Control signal indicating FIFO is full
-  output logic [ADDR_WIDTH - 1:0] w_ptr_next_out, // Next write pointer output
-  output logic [ADDR_WIDTH - 1:0] w_ptr_present_out // Present write pointer output
+  input logic w_clk_in,                     // Write clock input
+  input logic w_reset_in,                   // Write reset input
+  input logic w_request_in,                 // Write request input
+  input logic ctrl_full_in,                 // Control signal indicating FIFO is full
+  output logic [ADDR_WIDTH - 1:0] w_ptr_out // Present write pointer output
 );
 
   logic w_enable; // Write enable signal
   
-  // Single hot bit for incrementing, used to avoid manual truncation
+  // Single hot bit for incrementing. Used to prevent manual truncating
+  // to target size (reduces risk of system calulation error, and prevents warnings)
   logic [ADDR_WIDTH-1:0] one_hot = 1; 
 
   // Enable write operation only if FIFO is not full and write request is asserted
@@ -22,17 +22,11 @@ module write_fifo_dpath #(parameter ADDR_WIDTH = 3)
   // Sequential logic to control write pointer values
   always_ff @(posedge w_clk_in or posedge w_reset_in) begin
     if (w_reset_in) begin
-      w_ptr_present_out <= 0; // Initialize present pointer on reset
-      w_ptr_next_out <= one_hot; // Initialize next pointer on reset
+      w_ptr_out <= 0; // Initialize write pointer on reset
     end
     else if (w_enable) begin
-      w_ptr_present_out <= w_ptr_present_out + one_hot; // Increment the write pointer
-      // Update next pointer and mask it to the ADDR_WIDTH to prevent accidental overflow
-      w_ptr_next_out <= (w_ptr_present_out + one_hot + one_hot) & {ADDR_WIDTH{1'b1}};
-    end
-    else begin
-      // Maintain next pointer and mask it to the ADDR_WIDTH to prevent accidental overflow
-      w_ptr_next_out <= (w_ptr_present_out + one_hot) & {ADDR_WIDTH{1'b1}}; 
+      w_ptr_out <= w_ptr_out + one_hot; // Increment write pointer
+
     end
   end
 
