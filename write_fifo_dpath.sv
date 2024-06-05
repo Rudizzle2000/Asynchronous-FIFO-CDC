@@ -45,8 +45,7 @@ module write_fifo_dpath_tb();
   logic w_reset_in;
   logic w_request_in;
   logic ctrl_full_in;
-  logic [ADDR_WIDTH - 1:0] w_ptr_next_out;
-  logic [ADDR_WIDTH - 1:0] w_ptr_present_out;
+  logic [ADDR_WIDTH - 1:0] w_ptr_out;
   
   // Module instantiation
   write_fifo_dpath #(ADDR_WIDTH) W_DP (
@@ -54,8 +53,7 @@ module write_fifo_dpath_tb();
     .w_reset_in(w_reset_in),
     .w_request_in(w_request_in),
     .ctrl_full_in(ctrl_full_in),
-    .w_ptr_next_out(w_ptr_next_out),
-    .w_ptr_present_out(w_ptr_present_out)
+    .w_ptr_out(w_ptr_out)
   );
 
   // Clock period
@@ -84,16 +82,16 @@ module write_fifo_dpath_tb();
       w_request_in = 1; 
       ctrl_full_in = 0;
       @(posedge w_clk_in);
-      $display("w_request: %0d, w_ptr_present: %0d, w_ptr_next: %0d, ctrl_full: %0d", 
-                w_request_in, w_ptr_present_out, w_ptr_next_out, ctrl_full_in);     
+      $display("w_request: %0d, w_ptr_present: %0d, ctrl_full: %0d", 
+                w_request_in, w_ptr_out, ctrl_full_in);     
     end
 
     // Testing w_enable signal (system is full, thus w_enable is disabled)
     w_request_in = 1; 
     ctrl_full_in = 1;
     @(posedge w_clk_in);
-    $display("w_request: %0d, w_ptr_present: %0d, w_ptr_next: %0d, ctrl_full: %0d", 
-              w_request_in, w_ptr_present_out, w_ptr_next_out, ctrl_full_in);
+      $display("w_request: %0d, w_ptr_present: %0d, ctrl_full: %0d", 
+                w_request_in, w_ptr_out, ctrl_full_in); 
 
     // Simulate some read operations (system becomes empty)
     // For this simulation, we assume the pointers are reset externally
@@ -105,8 +103,8 @@ module write_fifo_dpath_tb();
       w_request_in = 1; 
       ctrl_full_in = 0;
       @(posedge w_clk_in);
-      $display("w_request: %0d, w_ptr_present: %0d, w_ptr_next: %0d, ctrl_full: %0d", 
-                w_request_in, w_ptr_present_out, w_ptr_next_out, ctrl_full_in);     
+      $display("w_request: %0d, w_ptr_present: %0d, ctrl_full: %0d", 
+                w_request_in, w_ptr_out, ctrl_full_in);     
     end
 
     $stop; 
