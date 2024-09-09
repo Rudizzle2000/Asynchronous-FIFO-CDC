@@ -23,6 +23,26 @@ module Asynchronous_FIFO_CDC #(parameter DATA_WIDTH = 4, ADDR_WIDTH = 3)
    logic [ADDR_WIDTH - 1:0] r_addr;         // Read address
    logic [ADDR_WIDTH - 1:0] r_addr_to_w;    // Read address in write domain
 
+   // Connecting reset signals
+   logic w_sync_reset_out; // write reset signal 
+   logic r_sync_reset_out; // read reset signal
+	
+   // Asynchrouns reset for write modules
+   async_reset WRITE_RESET 
+   ( 
+	.clk(clk),
+	.async_reset_in(w_reset_in),
+	.sync_reset_out(w_sync_reset_out)
+   );
+	
+   // Asynchrouns reset for read modules
+   async_reset READ_RESET 
+   ( 
+	.clk(clk),
+	.async_reset_in(r_reset_in),
+	.sync_reset_out(r_sync_reset_out)
+   );	
+
    // FIFO memory instantiation
    fifo_mem #(DATA_WIDTH, ADDR_WIDTH) FIFO_MEM 
    ( 
@@ -176,8 +196,8 @@ module Asynchronous_FIFO_CDC_tb();
     @(posedge w_clk_in);
 	 
     // Wait for a few cycles
-    repeat(4) @(posedge w_clk_in);
-    repeat(4) @(posedge r_clk_in);
+    repeat(2) @(posedge w_clk_in);
+    repeat(2) @(posedge r_clk_in);
 
     // =============================== //
     /* Test Read FIFO Operations/Logic */
@@ -205,8 +225,44 @@ module Asynchronous_FIFO_CDC_tb();
     @(posedge r_clk_in);
 	 
     // Wait a few cycles
-    repeat(4) @(posedge w_clk_in);
-    repeat(4) @(posedge r_clk_in);
+    repeat(2) @(posedge w_clk_in);
+    repeat(2) @(posedge r_clk_in);
+
+
+    // ======================================================== //
+    /* Test Write & Read FIFO Operations/Logic At The Same Time */
+    // ======================================================== //
+    
+    fork
+      // Write to FIFO
+      begin
+        for (int i = 0; i < 20; i++) begin
+          w_request_in = 1;
+	  if (~full_out) begin
+	     w_data_in = incr_w_data_in; // Write data as increasing numbers
+	     incr_w_data_in++;
+	  end
+          @(posedge w_clk_in);
+          w_request_in = 0;
+          @(posedge w_clk_in);
+        end
+      end
+
+      // Read from FIFO
+      begin
+        for (int i = 0; i < 20; i++) begin
+          r_request_in = 1;
+          @(posedge r_clk_in);
+          r_request_in = 0;
+          @(posedge r_clk_in);
+          $display("Read Data: %0d, Empty: %0d", r_data_out, empty_out);
+        end
+      end
+    join
+
+    // Wait a few cycles after the operation
+    repeat(2) @(posedge w_clk_in);
+    repeat(2) @(posedge r_clk_in);     
 
     $stop;
   end
